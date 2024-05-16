@@ -1,0 +1,37 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 200;
+
+  /* color-scheme: light dark; */
+  color-scheme: light;
+  color: rgba(0, 50, 50, 0.87);
+  background-color: #dddddd;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.sequence-box {
+  height: 30px;
+  width: 1000px; /* or any desired width */
+  padding-bottom: 10px;
+  overflow: auto;
+  white-space: nowrap; /* prevents the text from wrapping onto new lines */
+  font-family: 'Courier New', monospace; /* monospace font for consistent character width */
+  border: 1px solid black; /* optional, to visualize the box */
+}
