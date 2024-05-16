@@ -1,3 +1,4 @@
+.eslintrc.cjs
 # Logs
 logs
 *.log
