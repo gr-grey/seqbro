@@ -16,9 +16,10 @@ def getseq(chr, start, end, strand):
 def get_sequence():
     chr = request.args.get('chr')
     center = int(request.args.get('center'))
+    halflen = int(request.args.get('len'))
     strand = request.args.get('strand')
-    start = center - 1050
-    end = center + 1050
+    start = center - halflen
+    end = center + halflen
     seq = getseq(chr, start, end, strand)
     return jsonify({'sequence':seq, 'chr':chr})
 
