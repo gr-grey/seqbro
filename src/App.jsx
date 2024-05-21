@@ -10,6 +10,7 @@ function App() {
   const [lb, setLb] = useState([]); // Left buffer
   const [rb, setRb] = useState([]); // Right buffer
   const lThresh = 50 / 4001;
+  const rThresh = 3951 / 4001;
 
   const fetchSeq = async (center, length = 4001) => {
     const chr = 'chr7';
@@ -24,7 +25,8 @@ function App() {
       let backColor = '';
       if (index <= 151 && index >= 50) { backColor = 'green'; }
       if (index <= halflen + 151 && index >= halflen + 50) { backColor = 'red'; }
-      if (index === halflen) { backColor = 'cyan'; }
+      if (index <= length - 51 && index >= length - 150) { backColor = 'yellow'; }
+      if (index === halflen || index == 0 || index == length-1) { backColor = 'cyan'; }
       return { char, tooltip: tooltips[index], color: backColor }
     });
   }
@@ -35,7 +37,7 @@ function App() {
 
     const initialize = async () => {
       const initialSeq = await fetchSeq(initialCenter);
-      const halflen = (initialSeq.length - 1) / 2;
+      // const halflen = (initialSeq.length - 1) / 2;
       setSeq(initialSeq);
       // scroll to 50 %
       setTimeout(() => {
@@ -44,6 +46,7 @@ function App() {
         setDisplayCenter(initialCenter);
       }, 0);
       const lb = await fetchSeq(initialCenter - 4000, 4001); setLb(lb);
+      const rb = await fetchSeq(initialCenter + 4000, 4001); setRb(rb);
     }
     initialize();
   }, []);
@@ -56,6 +59,15 @@ function App() {
     setLb(newlb)
   }
 
+  const updateRBuff = async (newCen) => {
+    const rCen = newCen + 5000;
+    const newR = await fetchSeq(rCen, 2001);
+    const newrb = rb.slice(2000, -1).concat(newR)
+    console.log(`newR len ${newR.length}`)
+    console.log(`newrb len ${newrb.length}`)
+    setRb(newrb)
+  }
+
   // when scroll past left 5%, pad 5% and reset it to 5%
 
   const handleScroll = () => {
@@ -66,11 +78,11 @@ function App() {
     const visibleLen = 4001 / elem.scrollWidth * elem.clientWidth; // num of visible chars
     // setScrollPosition(scrollPos);
     const resetPos = 2100 / 4001 * lmax;
+    const resetPosR = 1900 / 4001 * lmax;
 
     if (scrollPos < lThresh) {
 
       const newhead = lb.slice(2000,); // len should be 2001
-
       const oldtail = seq.slice(1, 2001); // 2000
       const newseq = newhead.concat(oldtail);  setSeq(newseq);
       const newCen = center - 2000;            setCenter(newCen);
@@ -78,7 +90,18 @@ function App() {
       updateLBuff(newCen);
     }
 
-    let seqBoxCenCoord = 4000 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen ;
+    if (scrollPos > rThresh) {
+
+      const rbhead = rb.slice(0, 2001); // len should be 2001
+      const seqtail = seq.slice(2000,-1); // 2000
+      console.log(`seq tail ${seqtail.length}`)
+      const newseq = seqtail.concat(rbhead);   setSeq(newseq);
+      const newCen = center + 2000;            setCenter(newCen);
+      elem.scrollLeft = resetPosR;              //setScrollPosition(resetPos);
+      updateRBuff(newCen);
+    }
+
+    let seqBoxCenCoord = 4001 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen ;
     setDisplayCenter(Math.round(seqBoxCenCoord));
   };
 
