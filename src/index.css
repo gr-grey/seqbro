@@ -34,4 +34,26 @@ h1 {
   white-space: nowrap; /* prevents the text from wrapping onto new lines */
   font-family: 'Courier New', monospace; /* monospace font for consistent character width */
   border: 1px solid black; /* optional, to visualize the box */
+  /* hide scroll bar for Chrome and Safari */
+  /* -ms-overflow-style: none;  
+  scrollbar-width: none;   */
+}
+
+  /* hide scroll bar for IE, Edge and Firefox */
+/* .sequence-box::-webkit-scrollbar {
+  display: none;
+} */
+
+.sequence-box-wrapper {
+  position: relative;
+}
+
+.middle-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background-color: blue;
+  pointer-events: none;
 }
