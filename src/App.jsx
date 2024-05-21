@@ -3,98 +3,99 @@ import './App.css'
 
 function App() {
   const [seq, setSeq] = useState([]);
-  const [scrollPosition, setScrollPosition] = useState(0);
+  // const [scrollPosition, setScrollPosition] = useState(0);
   const [center, setCenter] = useState(5531000);
-  // left sequence backup
-  const [lSeqBack, setLSeqBack] = useState(null);
-  const sequenceDiv = useRef(null);
-  const seqHalfLen = 1000
+  const seqDiv = useRef(null);
   const [displayCenter, setDisplayCenter] = useState(center);
+  const [lb, setLb] = useState([]); // Left buffer
+  const [rb, setRb] = useState([]); // Right buffer
+  const lThresh = 50 / 4001;
 
-  const fetchSeq = center => {
+  const fetchSeq = async (center, length = 4001) => {
     const chr = 'chr7';
     const strand = '+';
-    // Fetch sequence data
-    return fetch(`http://localhost:5000/api/seq?chr=${chr}&center=${center}&strand=${strand}`)
-      .then(res => res.json())
-      .then(result => {
-        const sequence = result.sequence;
-        const length = sequence.length;
-        const halfsize = (length - 1) / 2;
-        const start = center - halfsize;
-        const tooltips = sequence.split('').map((_, index) => start + index);
-        const sequenceWithTooltip = sequence.split('').map((char, index) => {
-          // Assign the background color base on the index (start, center, end).
-          let backColor = '';
-          if (index === 70 || index === 90 || index === 110 || index === 50 || (index <= 30 && index >= 10)) { backColor = 'red'; }
-          if (index === halfsize || index === halfsize + 20 || index === halfsize + 40 || index === halfsize + 60 || (index <= halfsize - 20 && index >= halfsize - 40)) { backColor = 'cyan'; }
-          return { char, tooltip: tooltips[index], color: backColor };
-        });
-
-        return sequenceWithTooltip;
-      })
-  }
-  const fetchBackupLeft = center => {
-    fetchSeq(center - seqHalfLen) // Fetch backup sequence half_len positions left
-      .then((sequenceWithTooltip) => { setLSeqBack(sequenceWithTooltip); })
+    const halflen = (length - 1) / 2;
+    const res = await fetch(`http://localhost:5000/api/seq?chr=${chr}&center=${center}&len=${halflen}&strand=${strand}`);
+    const result = await res.json();
+    const sequence = result.sequence;
+    const start = center - halflen;
+    const tooltips = sequence.split('').map((_, index) => start + index);
+    return sequence.split('').map((char, index) => {
+      let backColor = '';
+      if (index <= 151 && index >= 50) { backColor = 'green'; }
+      if (index <= halflen + 151 && index >= halflen + 50) { backColor = 'red'; }
+      if (index === halflen) { backColor = 'cyan'; }
+      return { char, tooltip: tooltips[index], color: backColor }
+    });
   }
 
+  // load initial sequence
   useEffect(() => {
-    let initialCener = 5531000;
-    setCenter(initialCener);
-    fetchSeq(initialCener)
-      .then(
-        (sequenceWithTooltip) => { setSeq(sequenceWithTooltip); fetchBackupLeft(initialCener); },
-        (error) => { console.log(error); }
-      )
+    let initialCenter = 5531000; setCenter(initialCenter);
+
+    const initialize = async () => {
+      const initialSeq = await fetchSeq(initialCenter);
+      const halflen = (initialSeq.length - 1) / 2;
+      setSeq(initialSeq);
+      // scroll to 50 %
+      setTimeout(() => {
+        const halfway = (seqDiv.current.scrollWidth - seqDiv.current.clientWidth) / 2;
+        seqDiv.current.scrollLeft = halfway;
+        setDisplayCenter(initialCenter);
+      }, 0);
+      const lb = await fetchSeq(initialCenter - 4000, 4001); setLb(lb);
+    }
+    initialize();
   }, []);
 
-  // scroll to 50% once sequence is loaded
-  useEffect(() => {
-    if (seq) {
-      let halfWayPoint = sequenceDiv.current.scrollWidth / 2 - sequenceDiv.current.offsetWidth / 2;
-      sequenceDiv.current.scrollLeft = halfWayPoint;
-      setScrollPosition(50);
-      let newDisplayCenter = center + (seqHalfLen * 2 * (scrollPosition - 50) / 100);
-      setDisplayCenter(Math.round(newDisplayCenter));
+  // base on new ceter point
+  const updateLBuff = async (newCen) => {
+    const lCen = newCen - 5000;
+    const newL = await fetchSeq(lCen, 2001);
+    const newlb = newL.concat(lb.slice(1, 2001))
+    setLb(newlb)
+  }
+
+  // when scroll past left 5%, pad 5% and reset it to 5%
+
+  const handleScroll = () => {
+
+    const elem = seqDiv.current;
+    const lmax = elem.scrollWidth - elem.clientWidth;
+    const scrollPos = elem.scrollLeft / lmax;
+    const visibleLen = 4001 / elem.scrollWidth * elem.clientWidth; // num of visible chars
+    // setScrollPosition(scrollPos);
+    const resetPos = 2100 / 4001 * lmax;
+
+    if (scrollPos < lThresh) {
+
+      const newhead = lb.slice(2000,); // len should be 2001
+
+      const oldtail = seq.slice(1, 2001); // 2000
+      const newseq = newhead.concat(oldtail);  setSeq(newseq);
+      const newCen = center - 2000;            setCenter(newCen);
+      elem.scrollLeft = resetPos;              //setScrollPosition(resetPos);
+      updateLBuff(newCen);
     }
-  }, [seq]);
 
-
-  const handleScroll = e => {
-    const element = e.target;
-    // Calculate the percentage of the scrollbar position
-    let scrollPosition = (element.scrollLeft / (element.scrollWidth - element.offsetWidth)) * 100;
-
-    setScrollPosition(scrollPosition);
-    // console.log(`scroll percent ${scrollPosition}`)
-
-    if (scrollPosition < 0.2 && lSeqBack) {
-      setSeq(lSeqBack);  // Replace sequence with left backup
-      setCenter(center => center - seqHalfLen);  // Move center half_len positions left
-      setLSeqBack(null);  // Clear backup
-      fetchBackupLeft(center); // Fetch new backup
-    }
-
-    let newDisplayCenter = center + (seqHalfLen * 2 * (scrollPosition - 50) / 100);
-    setDisplayCenter(Math.round(newDisplayCenter));
+    let seqBoxCenCoord = 4000 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen ;
+    setDisplayCenter(Math.round(seqBoxCenCoord));
   };
 
   return (
     <>
       <h1> Sequence viewer </h1>
-      <p>Chr7 + <br/>Approx center Coord: {displayCenter}</p> 
-      <div
-        className="sequence-box"
-        contentEditable="true"
-        suppressContentEditableWarning={true} // suppress console warning
-        onScroll={handleScroll}
-        ref={sequenceDiv}
-      >
-        {seq.map((seqValue, i) => (
-          <span key={i} title={seqValue.tooltip} style={{ backgroundColor: seqValue.color }}>{seqValue.char}</span>
-        ))}
+      <p>Chr7 + <br />Center Coord: {displayCenter}</p>
+
+      <div className="sequence-box-wrapper">
+        <div className="sequence-box" ref={seqDiv} contentEditable="true" suppressContentEditableWarning={true} onScroll={handleScroll}>
+          {seq.map((seqVal, i) => (
+            <span key={i} title={seqVal.tooltip} style={{ backgroundColor: seqVal.color }}>{seqVal.char}</span>
+          ))}
+        </div>
+        <div className="middle-marker"></div>
       </div>
+
     </>
   )
 }
