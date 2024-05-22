@@ -13,12 +13,16 @@ function App() {
   const rThresh = 3951 / 4001;
 
   const fetchSeq = async (center, length = 4001) => {
-    const chr = 'chr7';
-    const strand = '+';
     const halflen = (length - 1) / 2;
-    const res = await fetch(`http://localhost:5000/api/seq?chr=${chr}&center=${center}&len=${halflen}&strand=${strand}`);
-    const result = await res.json();
-    const sequence = result.sequence;
+    // const chr = 'chr7';
+    // const strand = '+';
+    // const res = await fetch(`http://localhost:5000/api/seq?chr=${chr}&center=${center}&len=${halflen}&strand=${strand}`);
+    // const result = await res.json();
+    // const sequence = result.sequence;
+
+    const res2 = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr7;start=${center-halflen-1};end=${center+halflen}`);
+    const r2 = await res2.json();
+    const sequence = r2.dna.toUpperCase();
     const start = center - halflen;
     const tooltips = sequence.split('').map((_, index) => start + index);
     return sequence.split('').map((char, index) => {
@@ -58,7 +62,7 @@ function App() {
     const newlb = newL.concat(lb.slice(1, 2001));
     setLb(newlb);
     // rb shift 2k to the left
-    const newrb = rbhead.concat(rb.slice(2000));
+    const newrb = rbhead.concat(rb.slice(0, 2001));
     setRb(newrb);
   }
 
