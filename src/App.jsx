@@ -52,20 +52,23 @@ function App() {
   }, []);
 
   // base on new ceter point
-  const updateLBuff = async (newCen) => {
-    const lCen = newCen - 5000;
+  const updateLBuff = async (newCen, rbhead) => {
+    const lCen = newCen - 5000; // center of new seq to retrieve
     const newL = await fetchSeq(lCen, 2001);
-    const newlb = newL.concat(lb.slice(1, 2001))
-    setLb(newlb)
+    const newlb = newL.concat(lb.slice(1, 2001));
+    setLb(newlb);
+    // rb shift 2k to the left
+    const newrb = rbhead.concat(rb.slice(2000));
+    setRb(newrb);
   }
 
-  const updateRBuff = async (newCen) => {
-    const rCen = newCen + 5000;
+  const updateRBuff = async (newCen, lbtail) => {
+    const rCen = newCen + 5000; // center of new seq to retrieve
     const newR = await fetchSeq(rCen, 2001);
-    const newrb = rb.slice(2000, -1).concat(newR)
-    console.log(`newR len ${newR.length}`)
-    console.log(`newrb len ${newrb.length}`)
-    setRb(newrb)
+    const newrb = rb.slice(2000, -1).concat(newR);
+    setRb(newrb);
+    const newlb = lb.slice(2000,).concat(lbtail);
+    setLb(newlb);
   }
 
   // when scroll past left 5%, pad 5% and reset it to 5%
@@ -84,21 +87,23 @@ function App() {
 
       const newhead = lb.slice(2000,); // len should be 2001
       const oldtail = seq.slice(1, 2001); // 2000
+      const rbhead = seq.slice(2000, -1); // 2000
       const newseq = newhead.concat(oldtail);  setSeq(newseq);
       const newCen = center - 2000;            setCenter(newCen);
       elem.scrollLeft = resetPos;              //setScrollPosition(resetPos);
-      updateLBuff(newCen);
+      updateLBuff(newCen, rbhead);
     }
 
     if (scrollPos > rThresh) {
 
       const rbhead = rb.slice(0, 2001); // len should be 2001
       const seqtail = seq.slice(2000,-1); // 2000
-      console.log(`seq tail ${seqtail.length}`)
+      const lbtail = seq.slice(1, 2001); // 2000
+      // console.log(`seq tail ${seqtail.length}`)
       const newseq = seqtail.concat(rbhead);   setSeq(newseq);
       const newCen = center + 2000;            setCenter(newCen);
       elem.scrollLeft = resetPosR;              //setScrollPosition(resetPos);
-      updateRBuff(newCen);
+      updateRBuff(newCen, lbtail);
     }
 
     let seqBoxCenCoord = 4001 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen ;

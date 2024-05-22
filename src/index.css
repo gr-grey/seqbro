@@ -34,15 +34,13 @@ h1 {
   white-space: nowrap; /* prevents the text from wrapping onto new lines */
   font-family: 'Courier New', monospace; /* monospace font for consistent character width */
   border: 1px solid black; /* optional, to visualize the box */
-  /* hide scroll bar for Chrome and Safari */
+  /* hide scroll bar alternative, doesn't work on safari */
   /* -ms-overflow-style: none;  
   scrollbar-width: none;   */
 }
 
-  /* hide scroll bar for IE, Edge and Firefox */
-/* .sequence-box::-webkit-scrollbar {
-  display: none;
-} */
+  /* hide scroll bar */
+.sequence-box::-webkit-scrollbar { display: none; }
 
 .sequence-box-wrapper {
   position: relative;
