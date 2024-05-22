@@ -3,7 +3,6 @@ import './App.css'
 
 function App() {
   const [seq, setSeq] = useState([]);
-  // const [scrollPosition, setScrollPosition] = useState(0);
   const [center, setCenter] = useState(5531000);
   const seqDiv = useRef(null);
   const [displayCenter, setDisplayCenter] = useState(center);
@@ -11,8 +10,9 @@ function App() {
   const [rb, setRb] = useState([]); // Right buffer
   const lThresh = 50 / 4001;
   const rThresh = 3951 / 4001;
+  const [colorToggle, setColorToggle] = useState(true);
 
-  const fetchSeq = async (center, length = 4001) => {
+  const fetchSeq = async (center, length = 4001, withColor = true) => {
     const halflen = (length - 1) / 2;
     // const chr = 'chr7';
     // const strand = '+';
@@ -20,17 +20,19 @@ function App() {
     // const result = await res.json();
     // const sequence = result.sequence;
 
-    const res2 = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr7;start=${center-halflen-1};end=${center+halflen}`);
+    const res2 = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr7;start=${center - halflen - 1};end=${center + halflen}`);
     const r2 = await res2.json();
     const sequence = r2.dna.toUpperCase();
     const start = center - halflen;
     const tooltips = sequence.split('').map((_, index) => start + index);
     return sequence.split('').map((char, index) => {
       let backColor = '';
-      if (index <= 151 && index >= 50) { backColor = 'green'; }
-      if (index <= halflen + 151 && index >= halflen + 50) { backColor = 'red'; }
-      if (index <= length - 51 && index >= length - 150) { backColor = 'yellow'; }
-      if (index === halflen || index == 0 || index == length-1) { backColor = 'cyan'; }
+      if (withColor) {
+        if (index <= 151 && index >= 50) { backColor = 'green'; }
+        if (index <= halflen + 151 && index >= halflen + 50) { backColor = 'red'; }
+        if (index <= length - 51 && index >= length - 150) { backColor = 'yellow'; }
+        if (index === halflen || index == 0 || index == length - 1) { backColor = 'cyan'; }
+      }
       return { char, tooltip: tooltips[index], color: backColor }
     });
   }
@@ -40,7 +42,7 @@ function App() {
     let initialCenter = 5531000; setCenter(initialCenter);
 
     const initialize = async () => {
-      const initialSeq = await fetchSeq(initialCenter);
+      const initialSeq = await fetchSeq(initialCenter, 4001, colorToggle);
       // const halflen = (initialSeq.length - 1) / 2;
       setSeq(initialSeq);
       // scroll to 50 %
@@ -49,8 +51,8 @@ function App() {
         seqDiv.current.scrollLeft = halfway;
         setDisplayCenter(initialCenter);
       }, 0);
-      const lb = await fetchSeq(initialCenter - 4000, 4001); setLb(lb);
-      const rb = await fetchSeq(initialCenter + 4000, 4001); setRb(rb);
+      const lb = await fetchSeq(initialCenter - 4000, 4001, colorToggle); setLb(lb);
+      const rb = await fetchSeq(initialCenter + 4000, 4001, colorToggle); setRb(rb);
     }
     initialize();
   }, []);
@@ -58,7 +60,7 @@ function App() {
   // base on new ceter point
   const updateLBuff = async (newCen, rbhead) => {
     const lCen = newCen - 5000; // center of new seq to retrieve
-    const newL = await fetchSeq(lCen, 2001);
+    const newL = await fetchSeq(lCen, 2001, colorToggle);
     const newlb = newL.concat(lb.slice(1, 2001));
     setLb(newlb);
     // rb shift 2k to the left
@@ -68,7 +70,7 @@ function App() {
 
   const updateRBuff = async (newCen, lbtail) => {
     const rCen = newCen + 5000; // center of new seq to retrieve
-    const newR = await fetchSeq(rCen, 2001);
+    const newR = await fetchSeq(rCen, 2001, colorToggle);
     const newrb = rb.slice(2000, -1).concat(newR);
     setRb(newrb);
     const newlb = lb.slice(2000,).concat(lbtail);
@@ -92,8 +94,8 @@ function App() {
       const newhead = lb.slice(2000,); // len should be 2001
       const oldtail = seq.slice(1, 2001); // 2000
       const rbhead = seq.slice(2000, -1); // 2000
-      const newseq = newhead.concat(oldtail);  setSeq(newseq);
-      const newCen = center - 2000;            setCenter(newCen);
+      const newseq = newhead.concat(oldtail); setSeq(newseq);
+      const newCen = center - 2000; setCenter(newCen);
       elem.scrollLeft = resetPos;              //setScrollPosition(resetPos);
       updateLBuff(newCen, rbhead);
     }
@@ -101,18 +103,38 @@ function App() {
     if (scrollPos > rThresh) {
 
       const rbhead = rb.slice(0, 2001); // len should be 2001
-      const seqtail = seq.slice(2000,-1); // 2000
+      const seqtail = seq.slice(2000, -1); // 2000
       const lbtail = seq.slice(1, 2001); // 2000
       // console.log(`seq tail ${seqtail.length}`)
-      const newseq = seqtail.concat(rbhead);   setSeq(newseq);
-      const newCen = center + 2000;            setCenter(newCen);
+      const newseq = seqtail.concat(rbhead); setSeq(newseq);
+      const newCen = center + 2000; setCenter(newCen);
       elem.scrollLeft = resetPosR;              //setScrollPosition(resetPos);
       updateRBuff(newCen, lbtail);
     }
 
-    let seqBoxCenCoord = 4001 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen ;
+    let seqBoxCenCoord = 4001 * scrollPos + center - 2000 - (scrollPos - 0.5) * visibleLen;
     setDisplayCenter(Math.round(seqBoxCenCoord));
   };
+
+  const handleToggleColors = () => {
+    setColorToggle(!colorToggle);
+
+    const reinitialize = async () => {
+      const initialSeq = await fetchSeq(center, 4001, !colorToggle);
+      setSeq(initialSeq);
+      const lb = await fetchSeq(center - 4000, 4001, !colorToggle);
+      setLb(lb);
+      const rb = await fetchSeq(center + 4000, 4001, !colorToggle);
+      setRb(rb);
+
+      setTimeout(() => {
+        const halfway = (seqDiv.current.scrollWidth - seqDiv.current.clientWidth) / 2;
+        seqDiv.current.scrollLeft = halfway;
+        setDisplayCenter(center);
+      }, 0);
+    }
+    reinitialize();
+  }
 
   return (
     <>
@@ -127,6 +149,7 @@ function App() {
         </div>
         <div className="middle-marker"></div>
       </div>
+      <button onClick={handleToggleColors}> {colorToggle ? 'color off' : 'color on' }     </button>
 
     </>
   )
