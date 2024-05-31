@@ -1,4 +1,5 @@
 .eslintrc.cjs
+public/*wasm
 # Logs
 logs
 *.log
