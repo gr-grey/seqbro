@@ -39,7 +39,7 @@ function App() {
 
   // load initial sequence
   useEffect(() => {
-    let initialCenter = 5531000; setCenter(initialCenter);
+    let initialCenter = 5530600; setCenter(initialCenter);
 
     const initialize = async () => {
       const initialSeq = await fetchSeq(initialCenter, 4001, colorToggle);

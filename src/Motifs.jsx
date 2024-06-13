@@ -9,7 +9,7 @@ const Motifs = () => {
     const halfLen = 2000
 
     const fetchSeq = async () => {
-        const res2 = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr7;start=${5531000 - halfLen - 1 - 14};end=${5531000 + halfLen + 14}`); // padd 14 on each to make output the same as seq len
+        const res2 = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr7;start=${5536000 - halfLen - 1 - 14};end=${5536000 + halfLen + 14}`); // padd 14 on each to make output the same as seq len
         const r2 = await res2.json();
         const sequence = r2.dna.toUpperCase();
         return sequence
